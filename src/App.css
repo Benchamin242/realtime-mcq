@@ -1,42 +1,133 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* -------- BASE -------- */
+
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  color: #111827;
+}
+
+/* -------- LAYOUT -------- */
+
+.app {
+  min-height: 100vh;
+}
+
+.nav {
+  background: #1f2937;
+  padding: 14px 24px;
+  display: flex;
+  gap: 24px;
+}
+
+.nav a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.page {
+  max-width: 700px;
+  margin: 40px auto;
+  background: #ffffff;
+  padding: 28px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  color: #111827;
+}
+
+/* -------- TEXT -------- */
+
+h2, h3, p, label {
+  color: #111827;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.question {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+/* -------- FORMS -------- */
+
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+input::placeholder {
+  color: #6b7280;
+}
+
+input[type="radio"] {
+  accent-color: #2563eb;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+/* -------- BUTTONS -------- */
+
+button {
+  margin-top: 16px;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+/* -------- STEPPER -------- */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stepper button {
+  padding: 6px 10px;
+  font-size: 16px;
+}
+
+.stepper-text {
+  flex: 1;
   text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  font-weight: 500;
 }
