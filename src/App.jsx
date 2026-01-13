@@ -10,12 +10,29 @@ function Teacher() {
   const [question, setQuestion] = useState("")
   const [options, setOptions] = useState(["", "", "", ""])
   const [correctIndex, setCorrectIndex] = useState(0)
+  const [results, setResults] = useState({})
+
 
   const handleOptionChange = (value, index) => {
     const updated = [...options]
     updated[index] = value
     setOptions(updated)
   }
+
+  useEffect(() => {
+  const unsub = onSnapshot(collection(db, "responses"), snapshot => {
+    const counts = {}
+
+    snapshot.docs.forEach(doc => {
+      const opt = doc.data().selectedOption
+      counts[opt] = (counts[opt] || 0) + 1
+    })
+
+    setResults(counts)
+  })
+
+  return () => unsub()
+}, [])
 
   const createQuestion = async () => {
     await addDoc(collection(db, "questions"), {
@@ -26,6 +43,8 @@ function Teacher() {
     })
 
     alert("Question created")
+
+
   }
 
   return (
@@ -55,6 +74,16 @@ function Teacher() {
       ))}
 
       <button onClick={createQuestion}>Create Question</button>
+      <h3>Live Results</h3>
+
+      {Object.keys(results).length === 0 && <p>No responses yet</p>}
+
+      {Object.entries(results).map(([option, count]) => (
+        <p key={option}>
+          {option}: {count}
+        </p>
+      ))}
+
     </>
   )
 }
