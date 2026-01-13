@@ -1,7 +1,9 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { useState } from 'react'
-import { collection, addDoc } from 'firebase/firestore'
 import { db } from './firebase'
+import { useEffect } from 'react'
+import { collection, addDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore'
+
 
 
 function Teacher() {
@@ -59,8 +61,61 @@ function Teacher() {
 
 
 function Student() {
-  return <h2>Student page</h2>
+  const [question, setQuestion] = useState(null)
+  const [selected, setSelected] = useState("")
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "questions"),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    )
+
+    const unsub = onSnapshot(q, snapshot => {
+      if (!snapshot.empty) {
+        setQuestion(snapshot.docs[0].data())
+      }
+    })
+
+    return () => unsub()
+  }, [])
+
+  const submitAnswer = async () => {
+    await addDoc(collection(db, "responses"), {
+      selectedOption: selected,
+      createdAt: Date.now()
+    })
+
+    alert("Answer submitted")
+  }
+
+  if (!question) return <p>Waiting for question...</p>
+
+  return (
+    <>
+      <h2>Student page</h2>
+      <p>{question.questionText}</p>
+
+      {question.options.map(opt => (
+        <div key={opt}>
+          <input
+            type="radio"
+            name="answer"
+            value={opt}
+            checked={selected === opt}
+            onChange={() => setSelected(opt)}
+          />
+          {opt}
+        </div>
+      ))}
+
+      <button onClick={submitAnswer} disabled={!selected}>
+        Submit
+      </button>
+    </>
+  )
 }
+
 
 function App() {
   return (
