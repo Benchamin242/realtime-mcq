@@ -102,15 +102,14 @@ function Teacher() {
             value={opt}
             onChange={e => handleOptionChange(e.target.value, i)}
           />
-          <label>
-            <input
-              type="radio"
-              name="correct"
-              checked={correctIndex === i}
-              onChange={() => setCorrectIndex(i)}
-            />
-            Correct
-          </label>
+                    <input
+            type="radio"
+            name="correct"
+            checked={correctIndex === i}
+            onChange={() => setCorrectIndex(i)}
+          />
+          {correctIndex === i && <span className="correct-tag">Correct</span>}
+
         </div>
       ))}
 
