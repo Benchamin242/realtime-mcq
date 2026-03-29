@@ -6,7 +6,9 @@ import {
   addDoc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  where,
+  getDocs
 } from 'firebase/firestore'
 import './App.css'
 
@@ -21,6 +23,10 @@ function Teacher() {
   const [questions, setQuestions] = useState([])
   const [questionIndex, setQuestionIndex] = useState(0)
   const [results, setResults] = useState({})
+  const [responsesList, setResponsesList] = useState([])
+
+  // ✅ NEW
+  const [participants, setParticipants] = useState([])
 
   /* Load questions for session */
   useEffect(() => {
@@ -42,29 +48,61 @@ function Teacher() {
 
   const currentQuestion = questions[questionIndex]
 
+  // ✅ NEW COUNTS
+  const totalParticipants = participants.length
+  const totalResponses = responsesList.length
+
   /* Load responses for selected question */
   useEffect(() => {
     if (!currentQuestion || !sessionId) return
 
     const unsub = onSnapshot(collection(db, "responses"), snapshot => {
       const counts = {}
+      const list = []
 
       snapshot.docs.forEach(doc => {
         const data = doc.data()
+
         if (
           data.questionId === currentQuestion.id &&
           data.sessionId === sessionId
         ) {
           counts[data.selectedOption] =
             (counts[data.selectedOption] || 0) + 1
+
+          list.push({
+            studentId: data.studentId || "anon",
+            selectedOption: data.selectedOption
+          })
         }
       })
 
       setResults(counts)
+      setResponsesList(list)
     })
 
     return () => unsub()
   }, [currentQuestion, sessionId])
+
+  // ✅ NEW PARTICIPANTS LISTENER
+  useEffect(() => {
+    if (!sessionId) return
+
+    const q = query(
+      collection(db, "participants"),
+      orderBy("joinedAt")
+    )
+
+    const unsub = onSnapshot(q, snapshot => {
+      const data = snapshot.docs
+        .map(doc => doc.data())
+        .filter(p => p.sessionId === sessionId)
+
+      setParticipants(data)
+    })
+
+    return () => unsub()
+  }, [sessionId])
 
   const handleOptionChange = (value, index) => {
     const updated = [...options]
@@ -90,6 +128,7 @@ function Teacher() {
     setOptions(["", "", "", ""])
     setCorrectIndex(0)
     setResults({})
+    setResponsesList([])
     alert("Question created")
   }
 
@@ -118,6 +157,7 @@ function Teacher() {
             setSessionInput("")
             setQuestions([])
             setResults({})
+            setResponsesList([])
           }}
         >
           Leave Session
@@ -159,6 +199,13 @@ function Teacher() {
 
       <h3>View Results</h3>
 
+      {/* ✅ NEW RESPONSE COUNT */}
+      {sessionId && (
+        <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
+          Responses: {totalResponses} / {totalParticipants}
+        </div>
+      )}
+
       {currentQuestion && (
         <div className="stepper">
           <button
@@ -185,65 +232,79 @@ function Teacher() {
         <p className="muted">No responses yet</p>
       )}
 
-      
-
-      {/* ===== SIMPLE BAR GRAPH ===== */}
-      
+      {/* ===== BAR GRAPH ===== */}
       {Object.keys(results).length > 0 && (
-  <div style={{ marginTop: "20px" }}>
-    {Object.entries(results).map(function(entry) {
-      var option = entry[0]
-      var count = entry[1]
+        <div style={{ marginTop: "20px" }}>
+          {Object.entries(results).map(function(entry) {
+            var option = entry[0]
+            var count = entry[1]
 
-      var values = Object.values(results)
-      var max = Math.max.apply(null, values)
+            var values = Object.values(results)
+            var max = Math.max.apply(null, values)
 
-      var total = 0
-      values.forEach(function(v) {
-        total += v
-      })
+            var total = 0
+            values.forEach(function(v) {
+              total += v
+            })
 
-      var percentage = total === 0 ? 0 : Math.round((count / total) * 100)
+            var percentage = total === 0 ? 0 : Math.round((count / total) * 100)
 
-      return (
-        <div key={option} style={{ marginBottom: "10px" }}>
-          <div style={{ fontSize: "14px" }}>{option}</div>
+            return (
+              <div key={option} style={{ marginBottom: "10px" }}>
+                <div style={{ fontSize: "14px" }}>{option}</div>
 
-          <div
-            style={{
-              height: "20px",
-              width: (count / max) * 100 + "%",
-              background:
-                currentQuestion &&
-                option === currentQuestion.correctOption
-                  ? "#4caf50"
-                  : "#ccc",
-              transition: "0.3s"
-            }}
-          ></div>
+                <div
+                  style={{
+                    height: "20px",
+                    width: (count / max) * 100 + "%",
+                    background:
+                      currentQuestion &&
+                      option === currentQuestion.correctOption
+                        ? "#4caf50"
+                        : "#ccc",
+                    transition: "0.3s"
+                  }}
+                ></div>
 
-          <div style={{ fontSize: "12px" }}>
-            {count} ({percentage}%)
-          </div>
+                <div style={{ fontSize: "12px" }}>
+                  {count} ({percentage}%)
+                </div>
+              </div>
+            )
+          })}
         </div>
-      )
-    })}
-  </div>
-)}
+      )}
+
+      {/* ===== STUDENT RESPONSES ===== */}
+      <h4 style={{ marginTop: "20px" }}>Student Responses</h4>
+
+      {responsesList.length === 0 && (
+        <p className="muted">No responses yet</p>
+      )}
+
+      {responsesList.length > 0 && (
+        <div style={{ marginTop: "10px" }}>
+          {responsesList.map((r, i) => (
+            <div key={i} style={{ fontSize: "13px" }}>
+              {r.studentId} → {r.selectedOption}
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }
 
-/* ===================== STUDENT ===================== */
-
 function Student() {
   const [sessionInput, setSessionInput] = useState("")
   const [sessionId, setSessionId] = useState("")
+  const [studentId, setStudentId] = useState("")
   const [joined, setJoined] = useState(false)
 
   const [questions, setQuestions] = useState([])
   const [questionIndex, setQuestionIndex] = useState(0)
   const [selected, setSelected] = useState("")
+  const [hasAnswered, setHasAnswered] = useState(false)
 
   /* Load questions for session */
   useEffect(() => {
@@ -265,19 +326,44 @@ function Student() {
 
   const question = questions[questionIndex]
 
-  
+  /* Reset when question changes */
+  useEffect(() => {
+    setSelected("")
+    setHasAnswered(false)
+  }, [questionIndex])
 
   const submitAnswer = async () => {
-    if (!sessionId) return
+    if (!sessionId || !selected) return
 
-    await addDoc(collection(db, "responses"), {
-      sessionId: sessionId,
-      questionId: question.id,
-      selectedOption: selected,
-      createdAt: Date.now()
-    })
+    try {
+      const existingQuery = query(
+        collection(db, "responses"),
+        where("questionId", "==", question.id),
+        where("studentId", "==", studentId)
+      )
 
-    setSelected("")
+      const snapshot = await getDocs(existingQuery)
+
+      if (!snapshot.empty) {
+        alert("You already answered this question")
+        setHasAnswered(true)
+        return
+      }
+
+      await addDoc(collection(db, "responses"), {
+        sessionId: sessionId,
+        questionId: question.id,
+        selectedOption: selected,
+        studentId: studentId,
+        createdAt: Date.now()
+      })
+
+      setHasAnswered(true)
+      setSelected("")
+    } catch (err) {
+      console.error(err)
+      alert("Error submitting answer")
+    }
   }
 
   /* JOIN SCREEN */
@@ -294,11 +380,37 @@ function Student() {
           }
         />
 
+        <br /><br />
+
+        <input
+          placeholder="Enter your name or ID"
+          value={studentId}
+          onChange={e => setStudentId(e.target.value)}
+        />
+
+        <br /><br />
+
         <button
-          onClick={() => {
-            if (!sessionInput) return
-            setSessionId(sessionInput)
-            setJoined(true)
+          onClick={async () => {
+            if (!sessionInput || !studentId.trim()) {
+              alert("Enter session code and name")
+              return
+            }
+
+            try {
+              // ✅ NEW: register participant
+              await addDoc(collection(db, "participants"), {
+                sessionId: sessionInput,
+                studentId: studentId,
+                joinedAt: Date.now()
+              })
+
+              setSessionId(sessionInput)
+              setJoined(true)
+            } catch (err) {
+              console.error(err)
+              alert("Error joining session")
+            }
           }}
         >
           Join Session
@@ -315,15 +427,17 @@ function Student() {
       <h2>Student View</h2>
 
       <p>Session: {sessionId}</p>
+      <p>User: {studentId}</p>
 
-      {/* LEAVE BUTTON */}
       <button
         onClick={() => {
           setJoined(false)
           setSessionId("")
           setSessionInput("")
+          setStudentId("")
           setQuestions([])
           setSelected("")
+          setHasAnswered(false)
         }}
       >
         Leave Session
@@ -353,15 +467,18 @@ function Student() {
             type="radio"
             name="answer"
             checked={selected === opt}
+            disabled={hasAnswered}
             onChange={() => setSelected(opt)}
           />
           {opt}
         </label>
       ))}
 
-      <button onClick={submitAnswer} disabled={!selected}>
+      <button onClick={submitAnswer} disabled={!selected || hasAnswered}>
         Submit Answer
       </button>
+
+      {hasAnswered && <p className="muted">Answer submitted</p>}
     </>
   )
 }
